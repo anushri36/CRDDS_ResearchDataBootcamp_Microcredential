@@ -1,0 +1,94 @@
+---
+title: "Research Question & R Code with Outputs"
+author: "Anushri Kartik-Narayan"
+date: "2023-06-30"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Research Question
+
+Vowels may either be produced entirely using the oral cavity or partially using the nasal cavity. Vowels are thus classified as either oral or nasal respectively. Nasal vowels typically present on a spectrogram with anti-formants, which are lighter (lower intensity) bands of their component frequencies (harmonics; formants) than the formants of their oral vowel counterparts. The question can then be asked, is there a quantifiable difference in intensity between the formants of oral vowels and the anti-formants of nasal vowels?
+
+This analysis hypothesizes that there is a difference in harmonic frequency amplitudes between oral and nasal vowels. To test this hypothesis, the Phoneme Dataset containing harmonic frequency amplitudes for instances of oral and nasal vowels was evaluated. The dataset was retrieved from: <https://datahub.io/machine-learning/phoneme#readme>
+
+In this dataset, the variables V1-V5 refer to the amplitude values of the five component frequencies of each vowel instance. The "Class" variable refers to the vowel's classification, where "Class 1" refers to nasal vowels and "Class 2" refers to oral vowels.
+
+## Data Analysis
+
+Importing necessary libraries.
+
+```{r}
+library(tidyverse) # For data analysis.
+library(ggpubr) # For data visualization.
+```
+
+Importing and cleaning the dataset of vowel instances.
+
+```{r}
+# Read in dataset from downloaded csv file.
+phoneme_data = read.csv("phoneme_csv.csv")
+
+# Convert all negative values to absolute values, resulting in all positive amplitudes.
+clean_data = abs(phoneme_data)
+
+# Print preview of cleaned dataframe.
+head(clean_data)
+```
+
+Generating the average harmonic amplitude for each vowel instance.
+
+```{r}
+# Add new column "Mean.Harmonic.Amplitude" containing arithmetic means of V1, V2, V3, V4, and V5 for each vowel instance.
+data.means = mutate(clean_data, Mean.Harmonic.Amplitude = rowMeans(clean_data))
+
+# Print preview of new dataframe.
+head(data.means)
+```
+
+Generating summary statistics for the average harmonic amplitudes, grouping vowel instances by vowel class. Class 1 refers to nasal vowels; Class 2 refers to oral vowels.
+
+```{r}
+# Calculate summary statistics of oral and nasal vowels, including mean, standard error, and median.
+summary.stats = data.means %>% 
+  group_by(Class) %>% # Group data by vowel class variable.
+  summarize(
+    Class.Mean = mean(Mean.Harmonic.Amplitude), # Calculate mean within vowel class.
+    std.err = sd(Mean.Harmonic.Amplitude)/n(), # Calculate standard error within vowel class.
+    median = median(Mean.Harmonic.Amplitude) # Calculate median within vowel class.
+  )
+
+# Print summary statistics.
+summary.stats
+```
+
+Running an Independent Two-Sample T-Test on the average harmonic amplitudes of the two vowel classes.
+
+```{r}
+# Run Independent Two-Sample T-Test.
+tested = t.test(Mean.Harmonic.Amplitude ~ Class, data = data.means)
+
+# Print results of Independent Two-Sample T-Test.
+tested
+```
+
+## Visualization
+
+Generating a box and whisker plot of the average harmonic amplitudes for vowel instances of each class.
+
+```{r data.means}
+# Plot Mean.Harmonic.Amplitude of each vowel instance, grouping by vowel class.
+plot = ggboxplot(data.means, x = "Class", y = "Mean.Harmonic.Amplitude", color = "Class", xlab = "Class", ylab = "Mean Harmonic Amplitude")
+
+# Print plot.
+plot
+```
+
+## Conclusion
+
+Based on the above analysis, the hypothesis is supported. There is a statistically significant difference between the average harmonic amplitudes of nasal vowels and oral vowels. Thus, there is a difference in intensity between anti-formants and formants, suggesting acoustic divergences that are potentially used to audibly distinguish these sounds.
